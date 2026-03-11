@@ -736,7 +736,7 @@ async function askAI(q){
   }catch(e){
     rmTyping();
     console.error('askAI error:',e);
-    addMsg('b',"Erreur de connexion ("+e.message+"). Vérifie le worker ! ❌",'Duck Dev');
+    addMsg('b',"Erreur: "+e.message+" ❌",'Duck Dev');
   }
 }
 
