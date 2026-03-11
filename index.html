@@ -720,33 +720,23 @@ let tEl=null;
 function showTyping(){const area=document.getElementById('msgs'),w=document.createElement('div');w.className='msg b';w.id='tw';w.innerHTML=`<div class="mav">DB</div><div class="mbody"><div class="mmeta"><span class="mname">Duck Dev</span></div><div class="typing"><span></span><span></span><span></span></div></div>`;area.appendChild(w);area.scrollTop=area.scrollHeight;tEl=w;}
 function rmTyping(){if(tEl){tEl.remove();tEl=null;}}
 function buildSys(){let s=cfg.serverName?`Tu es Duck Dev, le support officiel du serveur Discord "${cfg.serverName}".\n`:`Tu es Duck Dev, le bot de support d'un serveur Discord de développement.\n`;if(cfg.serverDesc)s+=`Description: ${cfg.serverDesc}\n`;if(cfg.serverRoles)s+=`Rôles: ${cfg.serverRoles}\n`;if(cfg.serverChannels)s+=`Channels: ${cfg.serverChannels}\n`;if(cfg.systemPrompt)s+=`\nInstructions: ${cfg.systemPrompt}\n`;if(cfg.botPersonality)s+=`\nPersonnalité: ${cfg.botPersonality}\n`;const vr=(cfg.rules||[]).filter(r=>r.keyword&&r.response);if(vr.length){s+=`\nRègles spécifiques:\n`;vr.forEach(r=>s+=`- Si sujet "${r.keyword}": ${r.response}\n`);}if(cfg.forbiddenTopics)s+=`\nÀ éviter: ${cfg.forbiddenTopics}\n`;s+=`\nLien pour rejoindre le serveur Discord: https://discord.gg/brRnfZQNBh — Donne TOUJOURS ce lien exact quand quelqu'un demande comment rejoindre le serveur.\n`;s+=`\nRéponds en français. Sois concis et utile. Ne réponds qu'aux questions relatives au serveur.`;return s;}
-// ⚠️ Clé API Gemini (sécurise-la rapidement avec un Worker)
-const GEMINI_API_KEY='AIzaSyDE84AopQuuZPmyk2m0XZPP1NpRR2RzC38';
+// ⚠️ URL du Worker Cloudflare
+const PROXY_URL='https://duckdevsupport.lefan2quad.workers.dev/';
 
 async function askAI(q){
   try{
-    const sys=buildSys();
-    const fullPrompt=sys+'\n\n'+q;
-    
-    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+GEMINI_API_KEY,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        contents:[{parts:[{text:fullPrompt}]}],
-        generationConfig:{temperature:0.7,maxOutputTokens:1024}
-      })
-    });
-    
+    var payload={system:buildSys(),messages:[{role:'user',content:q}]};
+    var r=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!r.ok){throw new Error('HTTP '+r.status);}
     var d=await r.json();
     rmTyping();
-    var txt=(d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts&&d.candidates[0].content.parts[0]&&d.candidates[0].content.parts[0].text)?d.candidates[0].content.parts[0].text:'';
+    var txt=(d.content&&d.content[0]&&d.content[0].text)?d.content[0].text:'';
     if(txt){addMsg('b',txt,'Duck Dev');}
     else{addMsg('b',"Je n'ai pas pu générer une réponse. Réessaie ! 🔄",'Duck Dev');}
   }catch(e){
     rmTyping();
     console.error('askAI error:',e);
-    addMsg('b',"Erreur: "+e.message+" ❌",'Duck Dev');
+    addMsg('b',"Erreur de connexion ("+e.message+"). Vérifie le worker ! ❌",'Duck Dev');
   }
 }
 
